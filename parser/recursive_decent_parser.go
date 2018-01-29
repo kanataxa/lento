@@ -27,7 +27,7 @@ func NewRecursiveDecentParser(s *Source) *RecursiveDecentParser {
 // <expr> ::= <term> [ ('+' | '-') <term> ]*s
 // <term> ::= <factor> [ ('*' | '/') <factor> ]*
 // <factor> ::= <number> | '(' <expr> ')'
-// <number> ::= [1-9]*
+// <number> ::= ('1'|...|'9')[('0'|...|'9')]*
 func (p *RecursiveDecentParser) Expr() int {
 	x := p.term()
 	for {

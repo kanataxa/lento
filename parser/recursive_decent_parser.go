@@ -3,12 +3,13 @@ package parser
 import (
 	"strconv"
 	"unicode"
+	"fmt"
 )
 
 const (
-	plus  = "+"
-	minus = "-"
-	muluti = "*"
+	plus     = "+"
+	minus    = "-"
+	multi   = "*"
 	division = "/"
 )
 
@@ -23,10 +24,10 @@ func NewRecursiveDecentParser(s *Source) *RecursiveDecentParser {
 	}
 }
 
-
 // <expr> ::= <term> [ ('+' | '-') <term> ]*s
 // <term> ::= <factor> [ ('*' | '/') <factor> ]*
-// <factor> ::= <number> | '(' <expr> ')'
+// <factor> ::= [' ']*<unaryNumber> | '(' <expr> ')'[' ']*
+// <unaryNumber> ::= ['+'|'-']<number>
 // <number> ::= ('1'|...|'9')[('0'|...|'9')]*
 func (p *RecursiveDecentParser) Expr() int {
 	x := p.term()
@@ -38,10 +39,13 @@ func (p *RecursiveDecentParser) Expr() int {
 		case plus:
 			p.source.Next()
 			x += p.term()
+			continue
 		case minus:
 			p.source.Next()
 			x -= p.term()
+			continue
 		}
+		break
 	}
 	return x
 }
@@ -53,7 +57,7 @@ func (p *RecursiveDecentParser) term() int {
 			break
 		}
 		switch p.source.PosText() {
-		case muluti:
+		case multi:
 			p.source.Next()
 			x *= p.factor()
 			continue
@@ -61,7 +65,6 @@ func (p *RecursiveDecentParser) term() int {
 			p.source.Next()
 			x /= p.factor()
 			continue
-		default:
 		}
 		break
 	}
@@ -69,10 +72,36 @@ func (p *RecursiveDecentParser) term() int {
 }
 
 func (p *RecursiveDecentParser) factor() int {
-	x := p.number()
+	var x int
+	p.spaces()
+	if p.source.PosText() == "(" {
+		p.source.Next()
+		x = p.Expr()
+		p.source.Next()
+	} else {
+		x = p.unaryNumber()
+	}
+	p.spaces()
 	return x
 }
 
+func (p *RecursiveDecentParser) spaces() {
+	for p.source.Pos() < p.source.Len() && p.source.PosText() == " "{
+		p.source.Next()
+	}
+}
+
+func (p *RecursiveDecentParser) unaryNumber() int {
+	switch p.source.PosText() {
+	case plus:
+		p.source.Next()
+		return p.number()
+	case minus:
+		p.source.Next()
+		return -p.number()
+	}
+	return p.number()
+}
 func (p *RecursiveDecentParser) number() int {
 	var text string
 	source := p.source.Text()
@@ -83,6 +112,9 @@ func (p *RecursiveDecentParser) number() int {
 		text += string(r)
 		p.source.Next()
 	}
-	num, _ := strconv.Atoi(text)
+	num, err := strconv.Atoi(text)
+	if err != nil {
+		panic(fmt.Errorf(err.Error() + " text:%s, soure:%s", text,source))
+	}
 	return num
 }

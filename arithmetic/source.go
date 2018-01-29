@@ -1,4 +1,4 @@
-package parser
+package arithmetic
 
 import (
 	"unicode/utf8"

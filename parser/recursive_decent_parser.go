@@ -1,15 +1,15 @@
 package parser
 
 import (
+	"fmt"
 	"strconv"
 	"unicode"
-	"fmt"
 )
 
 const (
 	plus     = "+"
 	minus    = "-"
-	multi   = "*"
+	multi    = "*"
 	division = "/"
 )
 
@@ -86,7 +86,7 @@ func (p *RecursiveDecentParser) factor() int {
 }
 
 func (p *RecursiveDecentParser) spaces() {
-	for p.source.Pos() < p.source.Len() && p.source.PosText() == " "{
+	for p.source.Pos() < p.source.Len() && p.source.PosText() == " " {
 		p.source.Next()
 	}
 }
@@ -114,7 +114,7 @@ func (p *RecursiveDecentParser) number() int {
 	}
 	num, err := strconv.Atoi(text)
 	if err != nil {
-		panic(fmt.Errorf(err.Error() + " text:%s, soure:%s", text,source))
+		panic(fmt.Errorf(err.Error()+" text:%s, soure:%s", text, source))
 	}
 	return num
 }

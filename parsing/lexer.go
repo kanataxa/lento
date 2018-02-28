@@ -14,85 +14,97 @@ const (
 	rbrack
 )
 
-type Lexer struct {
-	Input   string
-	Pos     int
-	PosText string
-	EOF     string
-	EOFType int
+const (
+	EOFText = "-1"
+)
+
+type Lexer interface {
+	Next()
+	Token() *Token
 }
 
 type ListLexer struct {
-	name     int
-	comma    int
-	lbrack   int
-	rbrack   int
 	tokNames []string
-	*Lexer
+	Input    string
+	Pos      int
+	PosText  string
+	tok      *Token
 }
 
-func NewListLexer(input string) *ListLexer {
+func NewListLexer(input string) Lexer {
+	tokType := na
+	posText := input[0:1]
+	if posText == "[" {
+		tokType = lbrack
+	} else if posText == "]" {
+		tokType = rbrack
+	} else if posText == "," {
+		tokType = comma
+	}
 	return &ListLexer{
 		tokNames: []string{"n/a", "<EOF>", "NAME", "COMMA", "LBRACK", "RBLACK"},
-		Lexer: &Lexer{
-			Input:   input,
-			EOF:     "-1",
-			EOFType: 1,
-			PosText: input[0:1],
-		},
+		Input:    input,
+		Pos:      0,
+		tok:      NewToken(tokType, posText),
+		PosText:  input[1:2],
 	}
 }
-func (ll *ListLexer) TokenName(x int) string {
-	return ll.tokNames[x]
-}
 
-func (l *Lexer) NextToken() *Token {
-	for l.PosText != l.EOF {
+func (l *ListLexer) Next() {
+	for l.PosText != EOFText {
 		switch l.PosText {
 		case " ", "\t", "\n", "\r":
 			l.WhiteSpace()
 			continue
 		case ",":
+			l.tok = NewToken(comma, ",")
 			l.Consume()
-			return NewToken(comma, ",")
+			return
 		case "[":
+			l.tok = NewToken(lbrack, "[")
 			l.Consume()
-			return NewToken(lbrack, "[")
+			return
 		case "]":
+			l.tok = NewToken(rbrack, "]")
 			l.Consume()
-			return NewToken(rbrack, "]")
+			return
 		default:
-			if l.IsLetter() {
-				return NewToken(name, l.LetterName())
+			if !l.IsLetter() {
+				panic(fmt.Errorf("unknown character: %s", l.PosText))
 			}
-			panic(fmt.Errorf("unknown character: %s", l.PosText))
+			l.tok = NewToken(name, l.LetterName())
+			return
 		}
 	}
-	return NewToken(l.EOFType, "EOF")
+	l.tok = NewToken(eof, "EOF")
 }
 
-func (l *Lexer) WhiteSpace() {
+func (l *ListLexer) Token() *Token {
+	return l.tok
+}
+
+func (l *ListLexer) WhiteSpace() {
 	for l.PosText == " " || l.PosText == "\t" || l.PosText == "\n" || l.PosText == "\r" {
 		l.Consume()
 	}
 }
-func (l *Lexer) Consume() {
+func (l *ListLexer) Consume() {
 	l.Pos++
 	if l.Pos >= utf8.RuneCountInString(l.Input) {
-		l.PosText = l.EOF
+		l.PosText = EOFText
 	} else {
 		l.PosText = l.Input[l.Pos : l.Pos+1]
 	}
 }
 
-func (l *Lexer) IsLetter() bool {
+func (l *ListLexer) IsLetter() bool {
 	if l.PosText >= "a" && l.PosText <= "z" {
 		return true
 	}
 	return l.PosText >= "A" && l.PosText <= "Z"
 }
 
-func (l *Lexer) LetterName() string {
+func (l *ListLexer) LetterName() string {
 	var letterName string
 	for l.IsLetter() {
 		letterName += l.PosText

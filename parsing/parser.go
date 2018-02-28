@@ -1,13 +1,25 @@
 package parsing
 
-import "github.com/pkg/errors"
+import (
+	"github.com/pkg/errors"
+)
 
-type Parser struct {
-	input *Lexer
-	laTok *Token
+type Parser interface {
+	Lexer
+	Parse() error
 }
 
-func (p *Parser) Match(tokType int) error {
+/*
+ <list> ::= '['<elements>']';
+ <elements> ::= <element>[','<element>]*;
+ <element> ::= ('a'|...|'Z')[('a'|...|'Z')]*|<list>;
+*/
+type ListParser struct {
+	laTok *Token
+	Lexer
+}
+
+func (p *ListParser) Match(tokType int) error {
 	if tokType != p.laTok.TokType {
 		return errors.Errorf("unknown tokType %d", tokType)
 	}
@@ -15,17 +27,13 @@ func (p *Parser) Match(tokType int) error {
 	return nil
 }
 
-func (p *Parser) consume() {
-	p.laTok = p.input.NextToken()
+func (p *ListParser) consume() {
+	p.Next()
+	p.laTok = p.Token()
 }
 
-/*
- <list> ::= '[' <elements> ']';
- <elements> ::= <element> [',' <element>]*;
- <element> ::= ('a'|...|'Z')[('a'|...|'Z')]* | <list>;
-*/
-type ListParser struct {
-	*Parser
+func (p *ListParser) Parse() error {
+	return errors.Wrap(p.List(), "failed parse")
 }
 
 func (p *ListParser) List() error {
@@ -61,4 +69,12 @@ func (p *ListParser) Element() error {
 		return errors.Wrap(p.List(), "failed parse element")
 	}
 	return errors.Errorf("unknown tokType %s", p.laTok.TokType)
+}
+
+func NewListParser(input string) Parser {
+	lexer := NewListLexer(input)
+	return &ListParser{
+		Lexer: lexer,
+		laTok: lexer.Token(),
+	}
 }

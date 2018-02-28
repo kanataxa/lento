@@ -7,10 +7,12 @@ import (
 
 func TestListLexer_Parse(t *testing.T) {
 	listLexer := NewListLexer("  [] a] bd] ,")
-	tok := listLexer.NextToken()
-	for tok.TokType != listLexer.EOFType {
+	listLexer.Next()
+	tok := listLexer.Token()
+	for tok.TokType != eof {
 		fmt.Println(tok)
-		tok = listLexer.NextToken()
+		listLexer.Next()
+		tok = listLexer.Token()
 	}
 	fmt.Println(tok)
 }

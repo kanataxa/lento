@@ -5,6 +5,15 @@ import (
 	"unicode/utf8"
 )
 
+const (
+	na = iota
+	eof
+	name
+	comma
+	lbrack
+	rbrack
+)
+
 type Lexer struct {
 	Input   string
 	Pos     int
@@ -24,10 +33,6 @@ type ListLexer struct {
 
 func NewListLexer(input string) *ListLexer {
 	return &ListLexer{
-		name:     2,
-		comma:    3,
-		lbrack:   4,
-		rbrack:   5,
 		tokNames: []string{"n/a", "<EOF>", "NAME", "COMMA", "LBRACK", "RBLACK"},
 		Lexer: &Lexer{
 			Input:   input,
@@ -41,29 +46,29 @@ func (ll *ListLexer) TokenName(x int) string {
 	return ll.tokNames[x]
 }
 
-func (ll *ListLexer) NextToken() *Token {
-	for ll.PosText != ll.EOF {
-		switch ll.PosText {
+func (l *Lexer) NextToken() *Token {
+	for l.PosText != l.EOF {
+		switch l.PosText {
 		case " ", "\t", "\n", "\r":
-			ll.WhiteSpace()
+			l.WhiteSpace()
 			continue
 		case ",":
-			ll.Consume()
-			return NewToken(ll.comma, ",")
+			l.Consume()
+			return NewToken(comma, ",")
 		case "[":
-			ll.Consume()
-			return NewToken(ll.lbrack, "[")
+			l.Consume()
+			return NewToken(lbrack, "[")
 		case "]":
-			ll.Consume()
-			return NewToken(ll.rbrack, "]")
+			l.Consume()
+			return NewToken(rbrack, "]")
 		default:
-			if ll.IsLetter() {
-				return NewToken(ll.name, ll.LetterName())
+			if l.IsLetter() {
+				return NewToken(name, l.LetterName())
 			}
-			panic(fmt.Errorf("Unknown character: %s", ll.PosText))
+			panic(fmt.Errorf("unknown character: %s", l.PosText))
 		}
 	}
-	return NewToken(ll.EOFType, "EOF")
+	return NewToken(l.EOFType, "EOF")
 }
 
 func (l *Lexer) WhiteSpace() {

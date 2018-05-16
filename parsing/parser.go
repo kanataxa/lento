@@ -2,11 +2,100 @@ package parsing
 
 import (
 	"github.com/pkg/errors"
+	"github.com/k0kubun/pp"
+	"fmt"
 )
 
 type Parser interface {
 	Lexer
 	Parse() error
+}
+
+/*
+ <list> ::= '['<elements>']';
+ <elements> ::= <element>[','<element>]*;
+ <element> ::= ('a'|...|'Z')[('a'|...|'Z')]*|<element>'-'<element>|<list>;
+*/
+type MultiParser struct {
+	Lexer
+	toks []*Token
+	size uint32
+	pos  uint32
+}
+
+func NewMultiParser(input string, size uint32) Parser {
+	lexer := NewListLexer(input)
+	toks := make([]*Token, size)
+	for i := 0; i < int(size); i++ {
+		if i > lexer.Len() {
+			break
+		}
+		toks[i] = lexer.Token()
+		lexer.Next()
+	}
+
+	return &MultiParser{
+		Lexer: lexer,
+		toks:  toks,
+		size:  size,
+	}
+}
+
+func (p *MultiParser) consume() {
+	p.toks[p.pos] = p.Token()
+	p.Next()
+	p.pos = p.nextPos()
+}
+
+func (p *MultiParser) nextPos() uint32 {
+	return (p.pos + 1) % p.size
+}
+func (p *MultiParser) Match(tokType int) error {
+	if tokType != p.toks[p.pos].TokType {
+		return errors.Errorf("unknown tokType: [%d]", tokType)
+	}
+	p.consume()
+	return nil
+}
+
+func (p *MultiParser) Parse() error {
+	return errors.Wrap(p.list(), "failed parse")
+}
+
+func (p *MultiParser) list() error {
+	if err := p.Match(lbrack); err != nil {
+		return err
+	}
+	if err := p.elements(); err != nil {
+		return errors.Wrap(err, "failed parse list")
+	}
+	return p.Match(rbrack)
+}
+
+func (p *MultiParser) elements() error {
+	if err := p.element(); err != nil {
+		return errors.Wrap(err, "failed parse elements")
+	}
+	for p.toks[p.pos].TokType == comma {
+		if err := p.Match(comma); err != nil {
+			return err
+		}
+		if err := p.element(); err != nil {
+			return errors.Wrap(err, "failed parse elements")
+		}
+	}
+	return nil
+}
+
+func (p *MultiParser) element() error {
+	tokType := p.toks[p.pos].TokType
+	if tokType == name {
+		return p.Match(name)
+	}
+	if tokType == lbrack {
+		return errors.Wrap(p.list(), "failed parse element")
+	}
+	return errors.Errorf("unknown tokType [%d]", tokType)
 }
 
 /*

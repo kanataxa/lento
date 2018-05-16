@@ -19,6 +19,7 @@ const (
 )
 
 type Lexer interface {
+	Len() int
 	Next()
 	Token() *Token
 }
@@ -48,6 +49,9 @@ func NewListLexer(input string) Lexer {
 		tok:      NewToken(tokType, posText),
 		PosText:  input[1:2],
 	}
+}
+func (l *ListLexer) Len() int {
+	return utf8.RuneCountInString(l.Input)
 }
 
 func (l *ListLexer) Next() {

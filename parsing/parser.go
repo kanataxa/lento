@@ -2,8 +2,6 @@ package parsing
 
 import (
 	"github.com/pkg/errors"
-	"github.com/k0kubun/pp"
-	"fmt"
 )
 
 type Parser interface {
@@ -52,7 +50,7 @@ func (p *MultiParser) nextPos() uint32 {
 }
 func (p *MultiParser) Match(tokType int) error {
 	if tokType != p.toks[p.pos].TokType {
-		return errors.Errorf("unknown tokType: [%d]", tokType)
+		return errors.Errorf("unknown token: [%d]", tokType)
 	}
 	p.consume()
 	return nil
@@ -89,11 +87,24 @@ func (p *MultiParser) elements() error {
 
 func (p *MultiParser) element() error {
 	tokType := p.toks[p.pos].TokType
-	if tokType == name {
-		return p.Match(name)
-	}
 	if tokType == lbrack {
 		return errors.Wrap(p.list(), "failed parse element")
+	}
+	if tokType == name && p.toks[p.nextPos()].TokType == equal {
+		if err := p.Match(name); err != nil {
+			return errors.Wrap(err, "failed parse element")
+		}
+		if err := p.Match(equal); err != nil {
+			return errors.Wrap(err, "failed parse element")
+		}
+		if err := p.Match(name); err != nil {
+			return errors.Wrap(err, "failed parse element")
+		}
+
+		return nil
+	}
+	if tokType == name {
+		return errors.Wrap(p.Match(name), "failed parse element")
 	}
 	return errors.Errorf("unknown tokType [%d]", tokType)
 }

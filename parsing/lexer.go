@@ -12,6 +12,7 @@ const (
 	comma
 	lbrack
 	rbrack
+	equal
 )
 
 const (
@@ -41,9 +42,11 @@ func NewListLexer(input string) Lexer {
 		tokType = rbrack
 	} else if posText == "," {
 		tokType = comma
+	} else if posText == "=" {
+		tokType = equal
 	}
 	return &ListLexer{
-		tokNames: []string{"n/a", "<EOF>", "NAME", "COMMA", "LBRACK", "RBLACK"},
+		tokNames: []string{"n/a", "<EOF>", "NAME", "COMMA", "LBRACK", "RBLACK", "EQUAL"},
 		Input:    input,
 		Pos:      0,
 		tok:      NewToken(tokType, posText),
@@ -70,6 +73,10 @@ func (l *ListLexer) Next() {
 			return
 		case "]":
 			l.tok = NewToken(rbrack, "]")
+			l.Consume()
+			return
+		case "=":
+			l.tok = NewToken(equal, "=")
 			l.Consume()
 			return
 		default:

@@ -12,7 +12,7 @@ type Parser interface {
 /*
  <list> ::= '['<elements>']';
  <elements> ::= <element>[','<element>]*;
- <element> ::= ('a'|...|'Z')[('a'|...|'Z')]*|<element>'-'<element>|<list>;
+ <element> ::= ('a'|...|'Z')[('a'|...|'Z')]*|<element>'='<element>|<list>;
 */
 type MultiParser struct {
 	Lexer
